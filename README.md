@@ -1,73 +1,67 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+Scalable Websockets System Design
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS - Node.js framework for building efficient, reliable and scalable server-side applications
+Redis - to communicate with other instances and for messaging service
+Docker - to simulate multiple instances
+socket.io library to be used in both server and client side
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Setting up Redis
+First we setup redis using docker
 
-## Installation
+docker run --name poc-redis -p 6379:6379 -d redis
+ 
+This will start a docker container with redis installed and map port 6379 from host machine to docker container
 
-```bash
-$ npm install
-```
 
-## Running the app
+Setting up NodeJS Server
+We will setup nodejs server with using NestJS framework as it is completely built with Typescript and has good support for microservices, modules, integration with other libraries
+https://nestjs.com
 
-```bash
-# development
-$ npm run start
 
-# watch mode
-$ npm run start:dev
 
-# production mode
-$ npm run start:prod
-```
+Adding libraries
+We will mainly add two libraries
+socket.io - for maintaining websocket connections with client
+ioredis - full featured redis client for NodeJS
 
-## Test
+npm install --save socket.io ioredis
+npm install --save-dev @types/socket.io @types/ioredis
 
-```bash
-# unit tests
-$ npm run test
 
-# e2e tests
-$ npm run test:e2e
 
-# test coverage
-$ npm run test:cov
-```
+Understanding Working of Websockets
 
-## Support
+We are going to use websockets because we want to exchange messages between client and server in near realtime
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+So we need to open a connection between client and server which will remain alive for exchanges of messages. In order to do that we can utilize browsers Websocket API or we can use a library to ease maintenance of that connection. We will use the same library as we are using in backend (socket.io). After the connection is open we can then listen for messages from the server and send messages to the server or vice-versa.
 
-## Stay in touch
+Suppose we have only one server which handles this job of websockets and many clients are connected 
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
-## License
 
-Nest is [MIT licensed](LICENSE).
+Here we have 3 clients (C1, C2, C3)  and have active socket connection with S1, Now suppose C1 does some action which we need to inform C2
+
+C1 sends some data to server to perform and now server needs to send some information to C2, but for that Server (S1) should know that that there is active connection of C2 with him, so server sends data back to client C2, If server do not have active socket connection with him it cannot send information to that client as in case of client C4.
+
+Now this works ok incase we have only few clients, now suppose we have millions of clients and we need to maintain an active connection with them to exchange messages, one server will not be able to handle those connections by itself. So we will scale out as usual adding more no. of servers and then the problem starts
+
+The Problem
+
+In order to send messages to clients we need to know that the client is connected to any of our servers and if it is connected to any one of the servers then only that server will be able to exchange messages.
+
+
+
+
+
+Now we have 3 server instances which have active connections to the clients. Taking the above example again. 
+
+
+C1 does some action which C2 needs to know, C1 send event data to S1 as it is connected to S1 and now S1 need to send some data back to C2 which S1 cannot as S1 do not have any active connection of C2, but if we look in the above diagram, C2 is actually connected to and is active here in case with S2.
+
+Now in order to achieve this, we need to ask for any active connection of C2 to all of our instances, which we will achieve using Redis
+
+In Redis we will use Publish/Subscribe to implement communication between our server instances.
+
+
