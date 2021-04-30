@@ -8,9 +8,8 @@ import { SocketStateService } from '../socket-state/socket-state.service';
 import { RedisSocketEventEmitDTO } from '../dto/socket-event-emit.dto';
 import { RedisSocketEventSendDTO } from '../dto/socket-event-send.dto';
 import {
-  REDIS_SOCKET_EVENT_EMIT_ALL_NAME,
-  REDIS_SOCKET_EVENT_EMIT_AUTHENTICATED_NAME,
-  REDIS_SOCKET_EVENT_SEND_NAME,
+  REDIS_SOCKET_EVENT_EMIT_ALL,
+  REDIS_SOCKET_EVENT_SEND,
 } from './redis-propagator.constants';
 import { MessagingService } from 'src/messaging/messaging.service';
 
@@ -24,18 +23,13 @@ export class RedisPropagatorService {
     private readonly messagingService: MessagingService,
   ) {
     this.redisService
-      .fromEvent(REDIS_SOCKET_EVENT_SEND_NAME)
+      .fromEvent(REDIS_SOCKET_EVENT_SEND)
       .pipe(tap(this.consumeSendEvent))
       .subscribe();
 
     this.redisService
-      .fromEvent(REDIS_SOCKET_EVENT_EMIT_ALL_NAME)
+      .fromEvent(REDIS_SOCKET_EVENT_EMIT_ALL)
       .pipe(tap(this.consumeEmitToAllEvent))
-      .subscribe();
-
-    this.redisService
-      .fromEvent(REDIS_SOCKET_EVENT_EMIT_AUTHENTICATED_NAME)
-      .pipe(tap(this.consumeEmitToAuthenticatedEvent))
       .subscribe();
   }
 
@@ -52,13 +46,19 @@ export class RedisPropagatorService {
     //   .get(userId)
     //   .filter((socket) => socket.id !== socketId)
     //   .forEach((socket) => socket.emit(event, data));
-    console.log('socketid: ', socketId)
+
+    // get all message for this user
+
+
+    // console.log('socketid: ', socketId);
     return this.socketStateService
       .get(userId)
-      .filter((socket) => socket.id === socketId)
+      .map((socket) => socket)
       .forEach((socket) => {
         console.log('socket: ', socket);
-        this.messagingService.addMessage({ socketId, data, event })
+        socket.emit(event, data);
+
+        // this.messagingService.addMessage({ socketId, data, event })
       });
   };
 
@@ -68,37 +68,18 @@ export class RedisPropagatorService {
     this.socketServer.emit(eventInfo.event, eventInfo.data);
   };
 
-  private consumeEmitToAuthenticatedEvent = (
-    eventInfo: RedisSocketEventEmitDTO,
-  ): void => {
-    const { event, data } = eventInfo;
-
-    return this.socketStateService
-      .getAll()
-      .forEach((socket) => socket.emit(event, data));
-  };
-
   public propagateEvent(eventInfo: RedisSocketEventSendDTO): boolean {
     if (!eventInfo.userId) {
       return false;
     }
 
-    this.redisService.publish(REDIS_SOCKET_EVENT_SEND_NAME, eventInfo);
-
-    return true;
-  }
-
-  public emitToAuthenticated(eventInfo: RedisSocketEventEmitDTO): boolean {
-    this.redisService.publish(
-      REDIS_SOCKET_EVENT_EMIT_AUTHENTICATED_NAME,
-      eventInfo,
-    );
+    this.redisService.publish(REDIS_SOCKET_EVENT_SEND, eventInfo);
 
     return true;
   }
 
   public emitToAll(eventInfo: RedisSocketEventEmitDTO): boolean {
-    this.redisService.publish(REDIS_SOCKET_EVENT_EMIT_ALL_NAME, eventInfo);
+    this.redisService.publish(REDIS_SOCKET_EVENT_EMIT_ALL, eventInfo);
 
     return true;
   }

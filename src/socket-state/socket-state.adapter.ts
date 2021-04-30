@@ -28,18 +28,8 @@ export class SocketStateAdapter extends IoAdapter implements WebSocketAdapter {
     this.redisPropagatorService.injectSocketServer(server);
 
     server.use(async (socket: AuthenticatedSocket, next) => {
-      const token = socket.handshake.query?.token || socket.handshake.headers?.authorization;
-
-      if (!token) {
-        socket.auth = null;
-
-        // not authenticated connection is still valid
-        // thus no error
-        return next();
-      }
-
       try {
-        // fake auth
+        // fake auth to simulate authentication process
         socket.auth = {
           userId: '1234',
         };
@@ -55,15 +45,16 @@ export class SocketStateAdapter extends IoAdapter implements WebSocketAdapter {
 
   public bindClientConnect(server: socketio.Server, callback: Function): void {
     server.on('connection', (socket: AuthenticatedSocket) => {
+      console.log(`connection established with socketid ${socket.id}`);
       if (socket.auth) {
+        // add socket to state for later use
         this.socketStateService.add(socket.auth.userId, socket);
-
-        socket.on('disconnect', () => {
-          this.socketStateService.remove(socket.auth.userId, socket);
-
-          socket.removeAllListeners('disconnect');
-        });
       }
+
+      socket.on('disconnect', () => {
+        this.socketStateService.remove(socket.auth.userId, socket);
+        socket.removeAllListeners('disconnect');
+      });
 
       callback(socket);
     });

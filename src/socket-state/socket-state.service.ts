@@ -37,11 +37,4 @@ export class SocketStateService {
     return this.socketState.get(userId) || [];
   }
 
-  public getAll(): Socket[] {
-    const all = [];
-
-    this.socketState.forEach((sockets) => all.push(sockets));
-
-    return all;
-  }
 }
