@@ -16,8 +16,10 @@ export class RedisPropagatorInterceptor<T> implements NestInterceptor<T, WsRespo
     const socket = context.switchToWs().getClient();
 
 
+    console.log('interceptor,')
     return next.handle().pipe(
       tap((data) => {
+        console.log('data: ', data);
         this.redisPropegatorService.propagateEvent({
           socketId: socket.id,
           userId: socket.auth?.userId,

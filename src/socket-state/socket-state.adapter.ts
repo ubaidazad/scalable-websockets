@@ -31,7 +31,7 @@ export class SocketStateAdapter extends IoAdapter implements WebSocketAdapter {
       try {
         // fake auth to simulate authentication process
         socket.auth = {
-          userId: '1234',
+          userId: 'hardcoded_user_id',
         };
 
         return next();

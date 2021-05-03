@@ -35,7 +35,6 @@ export class RedisPropagatorService {
 
   public injectSocketServer(server: Server): RedisPropagatorService {
     this.socketServer = server;
-
     return this;
   }
 
@@ -50,14 +49,13 @@ export class RedisPropagatorService {
     // get all message for this user
 
 
-    // console.log('socketid: ', socketId);
+    console.log('sockets: ', this.socketStateService.get(userId).length);
+
     return this.socketStateService
       .get(userId)
-      .map((socket) => socket)
+      .filter((socket) => socket.id !== socketId)
       .forEach((socket) => {
-        console.log('socket: ', socket);
         socket.emit(event, data);
-
         // this.messagingService.addMessage({ socketId, data, event })
       });
   };

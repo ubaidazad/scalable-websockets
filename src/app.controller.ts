@@ -1,4 +1,4 @@
-import { Controller, Get, Sse } from '@nestjs/common';
+import { Controller, Get, Param, Sse } from '@nestjs/common';
 import { interval } from 'rxjs';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -13,9 +13,9 @@ export class AppController {
     return this.appService.sendEvent();
   }
 
-  @Get('status')
-  changeStatus() {
-    return this.appService.changeWorkflowStatus();
+  @Get('status/:uuid/:checked')
+  changeStatus(@Param('uuid') uuid: string, @Param('checked') checked: number) {
+    return this.appService.changeWorkflowStatus(uuid, checked);
   }
 
   @Sse('sse')

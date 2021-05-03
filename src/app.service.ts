@@ -8,22 +8,22 @@ export class AppService {
     console.log('sending event');
     // return true;
     return this.redisPropagatorService.propagateEvent({
-      userId: '1234',
+      userId: 'hardcoded_user_id',
       event: 'events',
       data: { data: 'hello' },
       socketId: '',
     });
   }
 
-  changeWorkflowStatus() {
+  changeWorkflowStatus(uuid: string, checked: number) {
     return this.redisPropagatorService.propagateEvent({
-      userId: '1234',
+      userId: 'hardcoded_user_id',
       event: 'events',
       data: {
         cmd: 'UPDATE_WORKFLOW_ACTION',
         data: {
-          uuid: '1',
-          isChecked: false,
+          uuid,
+          isChecked: 1,
         },
       },
       socketId: '',
